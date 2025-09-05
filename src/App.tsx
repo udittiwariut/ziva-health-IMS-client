@@ -1,11 +1,10 @@
 import { Routes, Route } from "react-router";
 import Layout from "./component/Layout";
-import Products from "./component/Product ";
+import Products from "./component/Products";
 
 import "./App.css";
 import Cart from "./component/Cart";
 import Order from "./component/Order";
-import useGenericGet from "./api/useGenericGet";
 
 function App() {
   return (

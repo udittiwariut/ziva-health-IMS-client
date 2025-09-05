@@ -4,13 +4,25 @@ import useGenericGet from "../api/useGenericGet";
 import { API_ENDPOINTS } from "../utls/ApiEndPoints";
 import { USER_ID } from "../utls/const";
 import Loader from "../Comman/Loader";
-import useGenericEdit from "../api/useGenericEdit";
-import { useQueryClient } from "@tanstack/react-query";
-import useGenericDelete from "../api/useGenericDelete";
-const Cart = () => {
-  const queryClient = useQueryClient();
+import { useState } from "react";
+import CardDetailModal from "./CardDetailModal";
+import CartItem from "./CartItem";
+import usePlaceOrder from "../api/usePlaceOrder";
 
-  const { data: cartCount } = useGenericGet({
+const Cart = () => {
+  const [isModalOpen, setIsModalOpen] = useState();
+
+  const [orderId, setOrderId] = useState();
+
+  const { mutateAsync: checkOut, isPending: isPendingCheckOut } = usePlaceOrder({
+    onSuccess: (orderStatus) => {
+      setOrderId(orderStatus.orderId);
+
+      setIsModalOpen(true);
+    },
+  });
+
+  const { data: cartCount, isLoading: isFetchingCartCount } = useGenericGet({
     url: `${API_ENDPOINTS.USER}/${USER_ID}/cartCount`,
   });
 
@@ -18,28 +30,17 @@ const Cart = () => {
     url: `${API_ENDPOINTS.CART}/${USER_ID}`,
   });
 
-  const { mutateAsync: changeQuantity, isPending: isChangingQuantity } = useGenericEdit();
-
-  const { mutateAsync: removeItemFromCart, isPending: isRemovingItemFromCart } = useGenericDelete();
-
   const navigate = useNavigate();
 
-  const handleQuantity = (productId: string, qtyChange: string) => {
-
-    const url = `${API_ENDPOINTS.CART}/${USER_ID}/${productId}?qtyChange=${qtyChange}`;
-
-    changeQuantity({ url: url, body: undefined }).then((data) => {
-      queryClient.invalidateQueries([`${API_ENDPOINTS.CART}/${USER_ID}`] as any);
-    });
+  const handleCheckOut = () => {
+    checkOut();
   };
 
-  const removeItem = (cartItemId: string) => {
-    const url = `${API_ENDPOINTS.CART}/${USER_ID}/${cartItemId}`;
-
-    removeItemFromCart({ url }).then(() => {
-      queryClient.invalidateQueries([`${API_ENDPOINTS.CART}/${USER_ID}`] as any);
-    });
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
+
+  console.log(orderId);
 
   if (isFetchingCart) return <Loader />;
   return (
@@ -61,39 +62,7 @@ const Cart = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
             {cart.items.map((item) => (
-              <div key={item.id} className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl">{item.image}</div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{item.product?.name}</h3>
-                    <p className="text-gray-600">${item.product.price}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled={isChangingQuantity}
-                      onClick={() => handleQuantity(item.product_id, "DEC")}
-                      className="w-8 h-8 cursor-pointer rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="w-12 text-center font-medium">{item.quantity}</span>
-                    <button
-                      disabled={isChangingQuantity}
-                      onClick={() => handleQuantity(item.product_id, "INC")}
-                      className="w-8 h-8 cursor-pointer rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="text-lg font-semibold">${item.itemTotalWithoutTax.toFixed(2)}</div>
-                  <button
-                    onClick={() => removeItem(item._id)}
-                    className="text-red-500 cursor-pointer hover:text-red-700 transition-colors"
-                  >
-                    {isRemovingItemFromCart ? <Loader2 className="spin" /> : <X className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
+              <CartItem item={item} />
             ))}
           </div>
 
@@ -118,7 +87,9 @@ const Cart = () => {
               </div>
             </div>
             <button
-              //   onClick={handleCheckout}
+              type="button"
+              disabled={cartCount?.count === 0 || isFetchingCartCount}
+              onClick={handleCheckOut}
               className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
             >
               <CreditCard className="w-5 h-5" />
@@ -127,6 +98,7 @@ const Cart = () => {
           </div>
         </div>
       )}
+      {isModalOpen ? <CardDetailModal orderId={orderId} handleCloseModal={handleCloseModal} /> : null}
     </div>
   );
 };

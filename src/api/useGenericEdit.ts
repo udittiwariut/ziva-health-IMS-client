@@ -5,11 +5,11 @@ import http from "../utls/http";
 const useGenericEdit = () => {
   async function updateData({ url, body }) {
     try {
-      await http.put(url, body);
+      const res = await http.put(url, body);
+      toast.success(res.data.message);
     } catch (error) {
-      toast.error(error.response.data.message);
-
-      // throw new Error(error);
+      const message = error?.response?.data?.message || "Something went wrong";
+      toast.error(message);
     }
   }
   return useMutation({

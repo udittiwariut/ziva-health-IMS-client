@@ -1,17 +1,13 @@
-import { useMutation, useQueryClient } from "react-query";
-import http from "../../utlis/http";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import http from "../utls/http";
 
-const useGenericPost = ({ onSuccess = (p: any) => {}, onError = (p: any) => {}, invalidateUrl = undefined, isPut = false }) => {
+const useGenericPost = ({ onSuccess = (p: any) => {}, onError = (p: any) => {}, invalidateUrl = undefined }) => {
   const queryClient = useQueryClient();
 
   async function sendData({ url, body }) {
-    if (isPut) return http.put(url, body);
-    else return http.post(url, body);
-  }
-
-  return useMutation(sendData, {
-    onSuccess: (res, input) => {
+    try {
+      const res = await http.post(url, body);
       if (invalidateUrl) {
         invalidateUrl.forEach((element) => {
           queryClient.invalidateQueries([element], {
@@ -24,12 +20,12 @@ const useGenericPost = ({ onSuccess = (p: any) => {}, onError = (p: any) => {}, 
       }
       onSuccess(res.data);
       toast.success(res.data.message);
-    },
-    onError: (res) => {
-      toast.error(res.response.data.message);
-      onError(res.response.data);
-    },
-  });
+    } catch (error) {
+      toast.error(error.response.data.message);
+    }
+  }
+
+  return useMutation({ mutationFn: sendData });
 };
 
 export default useGenericPost;

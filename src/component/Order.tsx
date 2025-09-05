@@ -1,49 +1,53 @@
 import { Package } from "lucide-react";
-import getStatusIcon from "../Comman/OrderStatusIcon";
+import useGenericGet from "../api/useGenericGet";
+import { API_ENDPOINTS } from "../utls/ApiEndPoints";
+import { USER_ID } from "../utls/const";
+import Loader from "../Comman/Loader";
+import { OrderItems } from "./OrderItems";
+import { useState } from "react";
 
 const Order = () => {
-  const orders = [];
+  const [status, setOrderStatus] = useState("confirmed");
+
+  const { data: orders, isLoading: isOrderLoading } = useGenericGet({
+    url: `${API_ENDPOINTS.ORDER}/${USER_ID}?status=${status}`,
+  });
+  const handleStatusChange = (e) => {
+    setOrderStatus(e.target.value);
+  };
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Order History</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Order History</h2>
 
-      {orders.length === 0 ? (
+        {/* Status Filter Dropdown */}
+        <div className="flex items-center space-x-2">
+          <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+            Filter by status:
+          </label>
+          <select
+            id="status-filter"
+            value={status}
+            onChange={handleStatusChange}
+            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      {isOrderLoading ? (
+        <Loader />
+      ) : !orders || orders.length === 0 ? (
         <div className="text-center py-12">
           <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">No orders found</p>
+          <p className="text-gray-500 text-lg">No {status !== "all" ? status : ""} orders found</p>
         </div>
       ) : (
         <div className="space-y-4">
           {orders.map((order) => (
-            <div key={order.id} className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">Order #{order.id}</h3>
-                  <p className="text-gray-600">Placed on {order.date}</p>
-                </div>
-                <div className="flex items-center gap-2 mt-2 md:mt-0">
-                  {getStatusIcon(order.status)}
-                  <span className="font-medium capitalize">{order.status}</span>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="space-y-2 mb-4">
-                  {order.items.map((item, index) => (
-                    <div key={index} className="flex justify-between">
-                      <span>
-                        {item.name} × {item.quantity}
-                      </span>
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                  <span>Total:</span>
-                  <span>${order.total.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
+            <OrderItems key={order.id || order._id} order={order} />
           ))}
         </div>
       )}
