@@ -1,4 +1,3 @@
-import React from "react";
 import useGenericEdit from "../api/useGenericEdit";
 import { API_ENDPOINTS } from "../utls/ApiEndPoints";
 import { DEFAULT_IMAGE, USER_ID } from "../utls/const";
